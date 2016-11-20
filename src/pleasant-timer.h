@@ -31,7 +31,8 @@ enum timer_wrap_type {
   TIMER_WRAP_TYPE_COMPARE_A     = 32,
   TIMER_WRAP_TYPE_9_BITS        = 64,  /* 16-bit specific */
   TIMER_WRAP_TYPE_10_BITS       = 128, /* 16-bit specific */
-  TIMER_WRAP_TYPE_INPUT_CAPTURE = 256  /* 16-bit specific */
+  TIMER_WRAP_TYPE_16_BITS       = 256, /* 16-bit specific */
+  TIMER_WRAP_TYPE_INPUT_CAPTURE = 512  /* 16-bit specific */
 };
 
 /* Compare Output Mode --------------------------------------------------------

@@ -80,6 +80,12 @@ bool timer2_init(enum timer_wave_type wave_type,
 static uint8_t wgm_mode_16_bits(enum timer_wave_type wave_type,
                                 enum timer_wrap_type wrap_type) {
   switch (wave_type | wrap_type) {
+  case (TIMER_WAVE_TYPE_NORMAL | TIMER_WRAP_TYPE_16_BITS):
+    return 0;
+  case (TIMER_WAVE_TYPE_PHASE_CORRECT_PWM | TIMER_WRAP_TYPE_8_BITS):
+    return 1;
+  case (TIMER_WAVE_TYPE_PHASE_CORRECT_PWM | TIMER_WRAP_TYPE_9_BITS):
+    return 2;
   case (TIMER_WAVE_TYPE_PHASE_CORRECT_PWM | TIMER_WRAP_TYPE_10_BITS):
     return 3;
   case (TIMER_WAVE_TYPE_NORMAL | TIMER_WRAP_TYPE_COMPARE_A):
