@@ -1,7 +1,7 @@
 #include <avr/io.h>
 #include "pleasant-timer.h"
 
-static const uint8_t wave_error = 0xFF;
+static const uint8_t wgm_mode_invalid = 0xFF;
 
 /* 8-bit timers ------------------------------------------------------------ */
 
@@ -21,23 +21,27 @@ static uint8_t wgm_mode_8_bits(enum timer_wave_type wave_type,
   case (TIMER_WAVE_TYPE_FAST_PWM | TIMER_WRAP_TYPE_COMPARE_A):
     return 7;
   default:
-    return wave_error;
+    return wgm_mode_invalid;
   }
 }
 
-bool timer0_init(struct timer_configuration configuration) {
+bool timer0_init(enum timer_wave_type wave_type,
+                 enum timer_wrap_type wrap_type,
+                 enum timer_clock_source clock_source,
+                 enum timer_interrupt interrupts,
+                 enum timer_compare_output_mode compare_output_mode_a,
+                 enum timer_compare_output_mode compare_output_mode_b) {
   TCCR0A = 0;
   TCCR0B = 0;
 
-  TIMSK0 = configuration.interrupts;
-  TCCR0B |= configuration.clock_source;
+  TIMSK0 = interrupts;
+  TCCR0B |= clock_source;
 
-  TCCR0A |= (configuration.compare_output_mode_a << 6);
-  TCCR0A |= (configuration.compare_output_mode_b << 4);
+  TCCR0A |= (compare_output_mode_a << 6);
+  TCCR0A |= (compare_output_mode_b << 4);
 
-  uint8_t wgm = wgm_mode_8_bits(configuration.wave_type,
-                                configuration.wrap_type);
-  if (wgm == wave_error) return false;
+  uint8_t wgm = wgm_mode_8_bits(wave_type, wrap_type);
+  if (wgm == wgm_mode_invalid) return false;
 
   TCCR0A |= (wgm & (1 << 0) ? (1 << WGM00) : 0);
   TCCR0A |= (wgm & (1 << 1) ? (1 << WGM01) : 0);
@@ -46,19 +50,23 @@ bool timer0_init(struct timer_configuration configuration) {
   return true;
 }
 
-bool timer2_init(struct timer_configuration configuration) {
+bool timer2_init(enum timer_wave_type wave_type,
+                 enum timer_wrap_type wrap_type,
+                 enum timer_clock_source clock_source,
+                 enum timer_interrupt interrupts,
+                 enum timer_compare_output_mode compare_output_mode_a,
+                 enum timer_compare_output_mode compare_output_mode_b) {
   TCCR2A = 0;
   TCCR2B = 0;
 
-  TIMSK2 = configuration.interrupts;
-  TCCR2B |= configuration.clock_source;
+  TIMSK2 = interrupts;
+  TCCR2B |= clock_source;
 
-  TCCR2A |= (configuration.compare_output_mode_a << 6);
-  TCCR2A |= (configuration.compare_output_mode_b << 4);
+  TCCR2A |= (compare_output_mode_a << 6);
+  TCCR2A |= (compare_output_mode_b << 4);
 
-  uint8_t wgm = wgm_mode_8_bits(configuration.wave_type,
-                                configuration.wrap_type);
-  if (wgm == wave_error) return false;
+  uint8_t wgm = wgm_mode_8_bits(wave_type, wrap_type);
+  if (wgm == wgm_mode_invalid) return false;
 
   TCCR2A |= (wgm & (1 << 0) ? (1 << WGM20) : 0);
   TCCR2A |= (wgm & (1 << 1) ? (1 << WGM21) : 0);
@@ -99,26 +107,33 @@ static uint8_t wgm_mode_16_bits(enum timer_wave_type wave_type,
   case (TIMER_WAVE_TYPE_FAST_PWM | TIMER_WRAP_TYPE_COMPARE_A):
     return 15;
   default:
-    return wave_error;
+    return wgm_mode_invalid;
   }
 }
 
-bool timer1_init(struct timer_configuration configuration) {
+bool timer1_init(enum timer_wave_type wave_type,
+                 enum timer_wrap_type wrap_type,
+                 enum timer_clock_source clock_source,
+                 enum timer_interrupt interrupts,
+                 enum timer_compare_output_mode compare_output_mode_a,
+                 enum timer_compare_output_mode compare_output_mode_b,
+                 enum timer_input_capture_edge input_capture_edge,
+                 enum timer_input_capture_noise_canceler
+                 input_capture_noise_canceler) {
   TCCR1A = 0;
   TCCR1B = 0;
 
-  TIMSK1 = configuration.interrupts;
-  TCCR1B |= configuration.clock_source;
+  TIMSK1 = interrupts;
+  TCCR1B |= clock_source;
 
-  TCCR1A |= (configuration.compare_output_mode_a << 6);
-  TCCR1A |= (configuration.compare_output_mode_b << 4);
+  TCCR1A |= (compare_output_mode_a << 6);
+  TCCR1A |= (compare_output_mode_b << 4);
 
-  TCCR1B |= (configuration.input_capture_edge << 6);
-  TCCR1B |= (configuration.input_capture_noise_canceler_enabled << 7);
+  TCCR1B |= (input_capture_edge << 6);
+  TCCR1B |= (input_capture_noise_canceler << 7);
 
-  uint8_t wgm = wgm_mode_16_bits(configuration.wave_type,
-                                 configuration.wrap_type);
-  if (wgm == wave_error) return false;
+  uint8_t wgm = wgm_mode_16_bits(wave_type, wrap_type);
+  if (wgm == wgm_mode_invalid) return false;
 
   TCCR1A |= (wgm & (1 << 0) ? (1 << WGM10) : 0);
   TCCR1A |= (wgm & (1 << 1) ? (1 << WGM11) : 0);

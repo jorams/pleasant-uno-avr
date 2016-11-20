@@ -95,43 +95,75 @@ enum timer_input_capture_edge {
   TIMER_INPUT_CAPTURE_EDGE_RISING  = 1
 };
 
-/* Configuration --------------------------------------------------------------
- * The timers can be configured by creating a timer configuration with the
- * desired values, then calling the timer's initialization function.
+/* Input capture noise canceler -----------------------------------------------
+ * When the noise canceler is enabled, four successive equal valued samples of
+ * the Input Capture pin are required for input capture to trigger.
  */
 
-struct timer_configuration {
-  enum timer_wave_type           wave_type;
-  enum timer_wrap_type           wrap_type;
-  enum timer_clock_source        clock_source;
-  enum timer_interrupt           interrupts;
-  enum timer_compare_output_mode compare_output_mode_a;
-  enum timer_compare_output_mode compare_output_mode_b;
-  enum timer_input_capture_edge input_capture_edge; /* 16-bit specific */
-  bool input_capture_noise_canceler_enabled;        /* 16-bit specific */
+enum timer_input_capture_noise_canceler {
+  TIMER_INPUT_CAPTURE_NOISE_CANCELER_DISABLED = 0,
+  TIMER_INPUT_CAPTURE_NOISE_CANCELER_ENABLED  = 1
 };
 
+/* Defaults ---------------------------------------------------------------- */
+
+#define TIMER_DEFAULT_WAVE_TYPE           TIMER_WAVE_TYPE_NORMAL
+#define TIMER_DEFAULT_WRAP_TYPE           TIMER_WRAP_TYPE_8_BITS
+#define TIMER_DEFAULT_COMPARE_OUTPUT_MODE TIMER_COMPARE_OUTPUT_MODE_OFF
+#define TIMER_DEFAULT_CLOCK_SOURCE        TIMER_CLOCK_SOURCE_OFF
+#define TIMER_DEFAULT_INTERRUPT           TIMER_INTERRUPT_OFF
+#define TIMER_DEFAULT_INPUT_CAPTURE_EDGE  TIMER_INPUT_CAPTURE_EDGE_FALLING
+#define TIMER_DEFAULT_INPUT_CAPTURE_NOISE_CANCELER \
+  TIMER_INPUT_CAPTURE_NOISE_CANCELER_DISABLED
+
 /*
- * Initialize timer 0, which is an 8-bit timer.
+ * Initialize timer 0, which is an 8-bit timer. Returns false if an
+ * incompatible combination of wave_type and wrap_type is selected, true
+ * otherwise.
  */
-bool timer0_init(struct timer_configuration configuration);
+bool timer0_init(enum timer_wave_type wave_type,
+                 enum timer_wrap_type wrap_type,
+                 enum timer_clock_source clock_source,
+                 enum timer_interrupt interrupts,
+                 enum timer_compare_output_mode compare_output_mode_a,
+                 enum timer_compare_output_mode compare_output_mode_b);
+
 #define TIMER0_VALUE     TCNT0
 #define TIMER0_COMPARE_A OCR0A
 #define TIMER0_COMPARE_B OCR0B
 
 /*
- * Initialize timer 1, which is a 16-bit timer.
+ * Initialize timer 1, which is a 16-bit timer. Returns false if an
+ * incompatible combination of wave_type and wrap_type is selected, true
+ * otherwise.
  */
-bool timer1_init(struct timer_configuration configuration);
+bool timer1_init(enum timer_wave_type wave_type,
+                 enum timer_wrap_type wrap_type,
+                 enum timer_clock_source clock_source,
+                 enum timer_interrupt interrupts,
+                 enum timer_compare_output_mode compare_output_mode_a,
+                 enum timer_compare_output_mode compare_output_mode_b,
+                 enum timer_input_capture_edge input_capture_edge,
+                 enum timer_input_capture_noise_canceler
+                 input_capture_noise_canceler);
+
 #define TIMER1_VALUE         TCNT1
 #define TIMER1_COMPARE_A     OCR1A
 #define TIMER1_COMPARE_B     OCR1B
 #define TIMER1_INPUT_CAPTURE ICR1
 
 /*
- * Initialize timer 2, which is an 8-bit timer.
+ * Initialize timer 2, which is an 8-bit timer. Returns false if an
+ * incompatible combination of wave_type and wrap_type is selected, true
+ * otherwise.
  */
-bool timer2_init(struct timer_configuration configuration);
+bool timer2_init(enum timer_wave_type wave_type,
+                 enum timer_wrap_type wrap_type,
+                 enum timer_clock_source clock_source,
+                 enum timer_interrupt interrupts,
+                 enum timer_compare_output_mode compare_output_mode_a,
+                 enum timer_compare_output_mode compare_output_mode_b);
+
 #define TIMER2_VALUE     TCNT2
 #define TIMER2_COMPARE_A OCR2A
 #define TIMER2_COMPARE_B OCR2B
