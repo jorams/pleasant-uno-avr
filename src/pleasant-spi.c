@@ -4,6 +4,9 @@
 #include <avr/io.h>
 #include "pleasant-spi.h"
 
+bool spi_prepared = false;
+bool spi_configured = false;
+
 void spi_prepare() {
   DDRB |= (1 << PORTB5);        /* SCK, Serial ClocK */
   DDRB ^= ~(1 << PORTB4);       /* MISO: Master In Slave Out */

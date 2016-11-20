@@ -47,8 +47,8 @@ enum spi_clock_speed {
 #define SPI_DEFAULT_CLOCK_SPEED SPI_CLOCK_SPEED_DIV_64
 #define SPI_DEFAULT_BIT_ORDER   SPI_BIT_ORDER_MSB_FIRST
 
-bool spi_prepared = false;
-bool spi_configured = false;
+extern bool spi_prepared;
+extern bool spi_configured;
 
 /* API functions ----------------------------------------------------------- */
 
