@@ -124,4 +124,9 @@ void usart_write_string(char *characters);
  */
 void usart_read_string(char *characters, size_t max, enum usart_error *error);
 
+/*
+ * Check if a byte is available from the USART.
+ */
+bool usart_byte_available();
+
 #endif /* PLEASANT_USART_H */

@@ -87,3 +87,7 @@ void usart_read_string(char *characters, size_t max, enum usart_error *error) {
 
   *(characters + i) = '\0';
 }
+
+bool usart_byte_available() {
+  return (UCSR0A & (1 << RXC0));
+}
