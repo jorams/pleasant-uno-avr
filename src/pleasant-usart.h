@@ -113,6 +113,12 @@ void usart_read_bytes(uint8_t *bytes, size_t count, enum usart_error *error);
 void usart_write_string(char *characters);
 
 /*
+ * Writes all decimal digits of an integer to the USART. The most significant
+ * digit will be first. Leading 0's will be ignored.
+ */
+void usart_write_integer(uint8_t *integer);
+
+/*
  * Read a string from the USART. Will read up to max-1 characters, or until the
  * first newline encountered, or until an error occurs. Note that max includes
  * an ending \0 byte, which will always be added (unless either max < 1 or an

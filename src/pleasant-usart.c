@@ -59,6 +59,19 @@ void usart_read_bytes(uint8_t *bytes, size_t count, enum usart_error *error) {
   }
 }
 
+void usart_write_integer(uint8_t integer) {
+  do {
+    uint8_t digit = integer;
+    uint8_t power = 1;
+    while (digit > 9) {
+      digit /= 10;
+      power *= 10;
+    }
+    integer -= digit * power;
+    usart_write(digit + '0');
+  } while(integer > 0);
+}
+
 void usart_write_string(char *characters) {
   while (*characters != '\0') {
     usart_write(*characters);
