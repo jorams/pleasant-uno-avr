@@ -290,10 +290,10 @@ void lcd_fill_rect(uint16_t x,
   if (x + w >= lcd_width)  w = lcd_width - x;
   if (y + h >= lcd_height) h = lcd_height - y;
 
-  lcd_set_area(x, y, x + w - 1, x + h - 1);
+  lcd_set_area(x, y, x + w - 1, y + h - 1);
 
   lcd_start_drawing();
-  for (i = w * h; i > 0; i--) lcd_send_data16(color);
+  for (i = (uint32_t)w * h; i > 0; i--) lcd_send_data16(color);
   lcd_stop_drawing();
 }
 
