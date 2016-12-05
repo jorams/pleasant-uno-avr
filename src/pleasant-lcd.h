@@ -197,6 +197,25 @@ void lcd_set_orientation(enum lcd_orientation orientation);
 void lcd_set_inverted(bool inverted);
 
 /*
+ * Start a draw operation in the specified area. Individual pixels can then be
+ * filled using lcd_batch_draw.
+ */
+void lcd_batch_start(uint16_t x, uint16_t y, uint16_t w, uint16_t h);
+
+/*
+ * Draw a single pixel. Calls to this function will fill pixels in the area
+ * specified in the call to lcd_batch_start, starting from (x, y), incrementing
+ * the x coordinate first, then the y coordinate. The order this represents on
+ * the screen depends on the orientation.
+ */
+void lcd_batch_draw(lcd_color color);
+
+/*
+ * Stop the draw operation.
+ */
+void lcd_batch_stop();
+
+/*
  * Draw a single pixel of the specified color on the screen.
  */
 void lcd_draw_pixel(uint16_t x, uint16_t y, lcd_color color);

@@ -249,33 +249,37 @@ void lcd_set_brightness(uint8_t brightness) {
 
 /* Drawing ----------------------------------------------------------------- */
 
-static void lcd_start_drawing() {
+void lcd_batch_start(uint16_t x, uint16_t y, uint16_t w, uint16_t h) {
+  lcd_set_area(x, y, x + w - 1, y + h - 1);
+
   lcd_start_transmission();
   lcd_send_command(LCD_COMMAND_WRITE);
 }
 
-static void lcd_stop_drawing() {
+void lcd_batch_draw(lcd_color color) {
+  lcd_send_data16(color);
+}
+
+void lcd_batch_stop() {
   lcd_stop_transmission();
 }
 
 void lcd_draw_pixel(uint16_t x, uint16_t y, lcd_color color) {
   if (x >= lcd_width || y >= lcd_height) return;
 
-  lcd_set_area(x, y, x, y);
-
-  lcd_start_drawing();
-  lcd_send_data16(color);
-  lcd_stop_drawing();
+  lcd_batch_start(x, y, 1, 1);
+  lcd_batch_draw(color);
+  lcd_batch_stop();
 }
 
 void lcd_fill_screen(uint16_t color) {
   uint32_t i;
 
-  lcd_start_drawing();
+  lcd_batch_start(0, 0, lcd_width, lcd_height);
   for (i = ((uint32_t)lcd_width * lcd_height); i > 0; i--) {
-    lcd_send_data16(color);
+    lcd_batch_draw(color);
   }
-  lcd_stop_drawing();
+  lcd_batch_stop();
 }
 
 void lcd_fill_rect(uint16_t x,
@@ -290,11 +294,9 @@ void lcd_fill_rect(uint16_t x,
   if (x + w >= lcd_width)  w = lcd_width - x;
   if (y + h >= lcd_height) h = lcd_height - y;
 
-  lcd_set_area(x, y, x + w - 1, y + h - 1);
-
-  lcd_start_drawing();
-  for (i = (uint32_t)w * h; i > 0; i--) lcd_send_data16(color);
-  lcd_stop_drawing();
+  lcd_batch_start(x, y, w, h);
+  for (i = (uint32_t)w * h; i > 0; i--) lcd_batch_draw(color);
+  lcd_batch_stop();
 }
 
 /* Touch ------------------------------------------------------------------- */
