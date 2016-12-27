@@ -7,6 +7,7 @@
 
 uint16_t lcd_width = LCD_WIDTH;
 uint16_t lcd_height = LCD_HEIGHT;
+enum lcd_orientation lcd_current_orientation = LCD_ORIENTATION_0;
 enum spi_clock_speed lcd_spi_clock_speed;
 
 /* Pins -------------------------------------------------------------------- */
@@ -235,6 +236,8 @@ void lcd_set_orientation(enum lcd_orientation orientation) {
   lcd_stop_transmission();
 
   lcd_set_area(0, 0, lcd_width - 1, lcd_height - 1);
+
+  lcd_current_orientation = orientation;
 }
 
 void lcd_set_inverted(bool inverted) {
@@ -301,6 +304,138 @@ void lcd_fill_rect(uint16_t x,
 
 /* Touch ------------------------------------------------------------------- */
 
+struct calibration_point {
+  uint32_t x;
+  uint32_t y;
+};
+
+struct calibration_matrix {
+  uint32_t a;
+  uint32_t b;
+  uint32_t c;
+  uint32_t d;
+  uint32_t e;
+  uint32_t f;
+  uint32_t div;
+};
+
+struct calibration_matrix tp_matrix;
+
+uint16_t lcd_x, lcd_y, lcd_z;
+uint16_t tp_x, tp_y;
+uint16_t tp_last_x, tp_last_y;
+
+#define CAL_POINT_X1   20
+#define CAL_POINT_Y1   20
+#define CAL_POINT1     {CAL_POINT_X1, CAL_POINT_Y1}
+
+#define CAL_POINT_X2   LCD_WIDTH - 20 /* 300 */
+#define CAL_POINT_Y2   LCD_HEIGHT / 2 /* 120 */
+#define CAL_POINT2     {CAL_POINT_X2, CAL_POINT_Y2}
+
+#define CAL_POINT_X3   LCD_WIDTH / 2   /* 160 */
+#define CAL_POINT_Y3   LCD_HEIGHT - 20 /* 220 */
+#define CAL_POINT3     {CAL_POINT_X3, CAL_POINT_Y3}
+
+static void lcd_touch_render_target_square(uint16_t x,
+                                           uint16_t y,
+                                           uint16_t size,
+                                           lcd_color color,
+                                           lcd_color background_color) {
+  lcd_fill_rect(x - (size / 2) - 1,
+                y - (size / 2) - 1,
+                size,
+                size,
+                color);
+  size -= 2;
+  lcd_fill_rect(x - (size / 2) - 1,
+                y - (size / 2) - 1,
+                size,
+                size,
+                background_color);
+};
+
+static void lcd_touch_set_calibration(struct calibration_point *lcd,
+                                      struct calibration_point *tp) {
+  tp_matrix.div = ((tp[0].x - tp[2].x) * (tp[1].y - tp[2].y)) -
+                  ((tp[1].x - tp[2].x) * (tp[0].y - tp[2].y));
+
+  tp_matrix.a = ((lcd[0].x - lcd[2].x) * (tp[1].y - tp[2].y)) -
+                ((lcd[1].x - lcd[2].x) * (tp[0].y - tp[2].y));
+
+  tp_matrix.b = ((tp[0].x - tp[2].x) * (lcd[1].x - lcd[2].x)) -
+                ((lcd[0].x - lcd[2].x) * (tp[1].x - tp[2].x));
+
+  tp_matrix.c = (tp[2].x * lcd[1].x - tp[1].x * lcd[2].x) * tp[0].y +
+                (tp[0].x * lcd[2].x - tp[2].x * lcd[0].x) * tp[1].y +
+                (tp[1].x * lcd[0].x - tp[0].x * lcd[1].x) * tp[2].y;
+
+  tp_matrix.d = ((lcd[0].y - lcd[2].y) * (tp[1].y - tp[2].y)) -
+                ((lcd[1].y - lcd[2].y) * (tp[0].y - tp[2].y));
+
+  tp_matrix.e = ((tp[0].x - tp[2].x) * (lcd[1].y - lcd[2].y)) -
+                ((lcd[0].y - lcd[2].y) * (tp[1].x - tp[2].x));
+
+  tp_matrix.f = (tp[2].x * lcd[1].y - tp[1].x * lcd[2].y) * tp[0].y +
+                (tp[0].x * lcd[2].y - tp[2].x * lcd[0].y) * tp[1].y +
+                (tp[1].x * lcd[0].y - tp[0].x * lcd[1].y) * tp[2].y;
+}
+
+void lcd_touch_start_calibration() {
+  struct calibration_point lcd_points[3] = {CAL_POINT1,
+                                            CAL_POINT2,
+                                            CAL_POINT3};
+  struct calibration_point tp_points[3];
+
+  lcd_color color =            RGB(0,   255, 0);
+  lcd_color background_color = RGB(0,   0,   0);
+  lcd_color touch_color =      RGB(255, 0,   255);
+
+  /* Save current orientation and clear screen */
+  enum lcd_orientation original_orientation = lcd_current_orientation;
+  lcd_set_orientation(LCD_ORIENTATION_0);
+  lcd_fill_screen(background_color);
+
+  /* Show calibration points */
+  for (uint8_t i = 0; i < 3; ) {
+    lcd_touch_render_target_square(lcd_points[i].x,
+                                   lcd_points[i].y,
+                                   20,
+                                   color,
+                                   background_color);
+    lcd_touch_render_target_square(lcd_points[i].x,
+                                   lcd_points[i].y,
+                                   8,
+                                   color,
+                                   background_color);
+
+     /* Save point when a press is detected */
+    uint16_t x, y;
+    while (!lcd_touch_read_raw(NULL, &x, &y)) { }
+
+    lcd_fill_rect(lcd_points[i].x - 4,
+                  lcd_points[i].y - 4,
+                  6,
+                  6,
+                  touch_color);
+    tp_points[i].x = x;
+    tp_points[i].y = y;
+
+    /*
+     * Clear the screen. This also acts as a delay so we don't register one
+     * touch as the calibration for all three points
+     */
+    lcd_fill_screen(background_color);
+
+    i++;
+  }
+
+  lcd_touch_set_calibration(lcd_points, tp_points);
+
+  /* Restore original orientation */
+  lcd_set_orientation(original_orientation);
+}
+
 static uint8_t lcd_touch_get_pressure() {
   uint8_t z1, z2;
 
@@ -341,9 +476,9 @@ static uint16_t lcd_touch_get_position(enum lcd_ads_channel channel) {
   return 0;
 }
 
-bool lcd_touch_read(uint16_t *touch_pressure,
-                    uint16_t *touch_x,
-                    uint16_t *touch_y) {
+bool lcd_touch_read_raw(uint16_t *touch_pressure,
+                        uint16_t *touch_x,
+                        uint16_t *touch_y) {
   uint16_t pressure;
   uint16_t x = 0, y = 0;
   bool x_consistent = false, y_consistent = false;
@@ -370,6 +505,98 @@ bool lcd_touch_read(uint16_t *touch_pressure,
     if (touch_pressure) *touch_pressure = pressure;
     if (touch_x)        *touch_x = x;
     if (touch_y)        *touch_y = y;
+    return true;
+  }
+
+  return false;
+}
+
+static void lcd_touch_calculate_points() {
+  uint32_t x, y;
+
+  if(tp_x != tp_last_x) {
+    tp_last_x = tp_x;
+    x = tp_x;
+    y = tp_y;
+    x = ((tp_matrix.a * x) + (tp_matrix.b * y) + tp_matrix.c) / tp_matrix.div;
+
+    switch (lcd_current_orientation) {
+    case LCD_ORIENTATION_0:
+    case LCD_ORIENTATION_180:
+           if (x >= (uint16_t)(lcd_width * 2)) { x = 0; }
+      else if (x >= (uint16_t)(lcd_width * 1)) { x = lcd_width - 1; }
+      break;
+    case LCD_ORIENTATION_90:
+    case LCD_ORIENTATION_270:
+           if (x >= (uint16_t)(lcd_height * 2)) { x = 0; }
+      else if (x >= (uint16_t)(lcd_height * 1)) { x = lcd_height - 1; }
+      break;
+    }
+
+    lcd_x = x;
+  }
+
+  if(tp_y != tp_last_y) {
+    tp_last_y = tp_y;
+    x = tp_x;
+    y = tp_y;
+    y = ((tp_matrix.d * x) + (tp_matrix.e * y) + tp_matrix.f) / tp_matrix.div;
+
+    switch (lcd_current_orientation) {
+    case LCD_ORIENTATION_0:
+    case LCD_ORIENTATION_180:
+           if (y >= (uint16_t)(lcd_height * 2)) { y = 0; }
+      else if (y >= (uint16_t)(lcd_height * 1)) { y = lcd_height - 1; }
+      break;
+    case LCD_ORIENTATION_90:
+    case LCD_ORIENTATION_270:
+           if (y >= (uint16_t)(lcd_width * 2)) { y = 0; }
+      else if (y >= (uint16_t)(lcd_width * 1)) { y = lcd_width - 1; }
+      break;
+    }
+
+    lcd_y = y;
+  }
+}
+
+/*
+ * The next two functions should only be called after calling
+ * lcd_touch_calculate_points()!
+ */
+static uint16_t lcd_touch_x() {
+  if (lcd_current_orientation == LCD_ORIENTATION_0) {
+    return lcd_x;
+  } else if (lcd_current_orientation ==  LCD_ORIENTATION_90) {
+    return lcd_y;
+  } else if (lcd_current_orientation == LCD_ORIENTATION_180) {
+    return lcd_width - lcd_x;
+  } else { /* lcd_current_orientation == LCD_ORIENTATION_270 */
+    return lcd_width - lcd_y;
+  }
+}
+
+static uint16_t lcd_touch_y() {
+  if (lcd_current_orientation == LCD_ORIENTATION_0) {
+    return lcd_y;
+  } else if (lcd_current_orientation == LCD_ORIENTATION_90) {
+    return lcd_height - lcd_x;
+  } else if (lcd_current_orientation == LCD_ORIENTATION_180) {
+    return lcd_height - lcd_y;
+  } else { /* lcd_current_orientation == LCD_ORIENTATION_270 */
+    return lcd_x;
+  }
+}
+
+bool lcd_touch_read(uint16_t *touch_pressure,
+                    uint16_t *touch_x,
+                    uint16_t *touch_y) {
+  bool consistent = lcd_touch_read_raw(&lcd_z, &tp_x, &tp_y);
+  lcd_touch_calculate_points();
+
+  if (consistent) {
+    if (touch_pressure) *touch_pressure = lcd_z;
+    if (touch_x)        *touch_x = lcd_touch_x();
+    if (touch_y)        *touch_y = lcd_touch_y();
     return true;
   }
 
