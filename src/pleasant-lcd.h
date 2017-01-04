@@ -145,6 +145,7 @@ enum lcd_orientation {
                          | LCD_MEMORY_ACCESS_CONTROL_MY),
 };
 
+
 /* Color ------------------------------------------------------------------- */
 
 typedef uint16_t lcd_color;
@@ -165,6 +166,7 @@ typedef uint16_t lcd_color;
 extern uint16_t lcd_width;
 extern uint16_t lcd_height;
 extern enum spi_clock_speed lcd_spi_clock_speed;
+extern enum lcd_orientation lcd_current_orientation;
 
 /* API functions ----------------------------------------------------------- */
 
@@ -234,6 +236,13 @@ void lcd_fill_rect(uint16_t x,
                    uint16_t h,
                    lcd_color color);
 
+/* Touch ------------------------------------------------------------------- */
+
+/*
+ * Calibrate the touch screen in order to accurately read touch position.
+ */
+void lcd_touch_start_calibration();
+
 /*
  * Read the current state of the touchscreen. The return value specifies
  * whether or not a touch was registered.
@@ -241,6 +250,15 @@ void lcd_fill_rect(uint16_t x,
  * If a touch was registered, the value the three pointer arguments point to is
  * updated to reflect the current state of the touch panel. If you are not
  * interested in some value, you can pass in NULL.
+ */
+bool lcd_touch_read_raw(uint16_t *touch_pressure,
+                        uint16_t *touch_x,
+                        uint16_t *touch_y);
+
+/*
+ * Read current state of touchscreen using calibration data. Passed arguments
+ * will contain the data upon success. Returns true when a touch was
+ * registered.
  */
 bool lcd_touch_read(uint16_t *touch_pressure,
                     uint16_t *touch_x,
